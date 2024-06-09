@@ -1,40 +1,49 @@
-﻿namespace cw6.Controllers;
-using cw6.Models;
+﻿using cw6.DTOs;
+using cw6.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+
+namespace cw6.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class PrescriptionController : ControllerBase
+[Route("/api")]
+public class PrescriptionController(IPrescriptionService prescriptionService)  : ControllerBase
 {
-    private readonly Context.Context _context;
-
-    public PrescriptionController(Context.Context context)
-    {
-        _context = context;
-    }
+    private readonly IPrescriptionService _prescriptionService = prescriptionService;
+    
     // GET: api/Prescription/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Prescription>> GetPrescription(int id)
+    [HttpPost("{idDoctor:int}/prescribe")]
+    public async Task<IActionResult> Prescribe(int idDoctor, PrescribeDto dto, CancellationToken cancellationToken)
     {
-        var prescription = await _context.Prescription.FindAsync(id);
-
-        if (prescription == null)
+        var validationResult = Validate(dto);
+        if (validationResult.isValid == false)
         {
-            return NotFound();
+            return BadRequest(validationResult.errorMsg);
         }
 
-        return prescription;
+        try
+        {
+            await _prescriptionService.AddPrescription(idDoctor, dto, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            return BadRequest(exception.Message);
+        }
+
+        return Created();
     }
     
-    
-    // POST: api/Prescription
-    [HttpPost]
-    public async Task<ActionResult<Prescription>> PostClient(Prescription prescription)
+    private static (bool isValid, string? errorMsg) Validate(PrescribeDto dto)
     {
-        _context.Prescription.Add(prescription);
-        await _context.SaveChangesAsync();
+        if(dto.DueDate < dto.Date)
+        {
+            return (false, "Prescription date cannot be after its due date");
+        }
 
-        return CreatedAtAction("GetPrescription", new { id = prescription.IdPrescription }, prescription);
+        if (dto.PrescriptionDetails.Count > 10)
+        {
+            return (false, "Prescription cannot include more than 10 medicaments");
+        }
+
+        return (true, null);
     }
 }

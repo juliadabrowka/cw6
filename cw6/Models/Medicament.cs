@@ -4,8 +4,10 @@ namespace cw6.Models;
 
 public class Medicament
 {
-    [Key, Required] private int IdMedicament{ get; set; }
-    [Required, MaxLength(100)] private string Name { get; set; }
-    [Required, MaxLength(100)] private string Description { get; set; }
-    [Required, MaxLength(100)] private string Type { get; set; }
+    public int IdMedicament { get; init; }
+    public string Name { get; init; } = null!;
+    public string Description { get; init; } = null!;
+    public string Type { get; init; } = null!;
+
+    public ICollection<Prescription_Medicament> Prescriptions = new List<Prescription_Medicament>();
 }
